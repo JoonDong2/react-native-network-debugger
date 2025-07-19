@@ -1,0 +1,45 @@
+{
+  "name": "react-native-dev-server",
+  "version": "0.0.1",
+  "main": "dist/index.js",
+  "types": "dist/types/index.d.ts",
+  "exports": {
+    "./dev-server": {
+      "default": "./dist/dev-server/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c"
+  },
+  "dependencies": {
+    "@rollup/plugin-typescript": "^11.1.6",
+    "@rollup/plugin-url": "^8.0.2",
+    "rollup-plugin-dts": "^6.1.1"
+  },
+  "peerDependencies": {
+    "@react-native/dev-middleware": "*",
+    "@react-native/metro-config": "*",
+    "chalk": "*",
+    "connect": "*",
+    "debug": "*",
+    "metro": "*",
+    "metro-config": "*",
+    "metro-core": "*",
+    "semver": "*"
+  },
+  "devDependencies": {
+    "@react-native-community/cli-types": "18.0.0",
+    "@react-native/dev-middleware": "0.80.1",
+    "@rollup/plugin-commonjs": "^25.0.8",
+    "@rollup/plugin-json": "^6.1.0",
+    "@rollup/plugin-node-resolve": "^15.2.3",
+    "invariant": "2.2.4",
+    "rollup": "^4.18.0",
+    "rollup-plugin-peer-deps-external": "^2.2.4",
+    "rollup-plugin-typescript2": "^0.36.0"
+  },
+  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+}
