@@ -1,6 +1,5 @@
 import { DEVICE_KEY } from '../shared/constants';
 import jsonParseSafely from '../shared/jsonParseSafely';
-import wrapPayload from '../shared/wrapPayload';
 
 /**
  * 개발자 도구로 payload를 전송합니다.
