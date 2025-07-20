@@ -22,6 +22,7 @@ import path from 'path';
 import url from 'url';
 import { createInspectorMessageHandler } from './inspector-message-handler';
 import { DEVICE_KEY } from '../shared/constants';
+import { resolve as defaultResolve } from 'metro-resolver';
 
 async function runServer(
   _argv,
@@ -45,6 +46,17 @@ async function runServer(
   } = metroConfig;
   const protocol = args.https === true ? 'https' : 'http';
   const devServerUrl = url.format({ protocol, hostname, port });
+
+  const originalResolveRequest = metroConfig.resolver?.resolveRequest ?? defaultResolve;
+  metroConfig.resolver.resolveRequest = (context, moduleName, platform) => {
+    if (moduleName === '../Core/InitializeCore') {
+      return {
+        filePath: require.resolve('react-native-dev-server/dev-client'),
+        type: 'sourceFile',
+      }
+    }
+    return originalResolveRequest(context, moduleName, platform);
+  }
 
   console.info(
     chalk.blue(`\nWelcome to React Native v${cliConfig.reactNativeVersion}`),

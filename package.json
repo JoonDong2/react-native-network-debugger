@@ -6,6 +6,9 @@
   "exports": {
     "./dev-server": {
       "default": "./dist/dev-server/index.js"
+    },
+    "./dev-client": {
+      "default": "./dist/dev-client/index.js"
     }
   },
   "files": [
@@ -28,7 +31,9 @@
     "metro": "*",
     "metro-config": "*",
     "metro-core": "*",
-    "semver": "*"
+    "semver": "*",
+    "react-native": "*",
+    "metro-resolver": "*"
   },
   "devDependencies": {
     "@react-native-community/cli-types": "18.0.0",
