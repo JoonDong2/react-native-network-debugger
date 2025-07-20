@@ -20,6 +20,8 @@ import Metro from 'metro';
 import { Terminal } from 'metro-core';
 import path from 'path';
 import url from 'url';
+import { createInspectorMessageHandler } from './inspector-message-handler';
+import { DEVICE_KEY } from '../shared/constants';
 
 async function runServer(
   _argv,
@@ -96,12 +98,17 @@ async function runServer(
     logger: createDevMiddlewareLogger(terminalReporter),
     unstable_experiments: {
       enableNetworkInspector: true,
-    }
+    },
+    unstable_customInspectorMessageHandler: createInspectorMessageHandler,
   });
 
   const reporter = {
     update(event) {
-      terminalReporter.update(event);
+      // Passes only non-debugging logs.
+      if (!Array.isArray(event.data) || event.data[0] !== DEVICE_KEY) {
+        terminalReporter.update(event);
+      }
+      
       if (reportEvent) {
         reportEvent(event);
       }

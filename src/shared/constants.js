@@ -1,0 +1,1 @@
+export const DEVICE_KEY = ']Ij!iI!l\"}1|[.>lL;:{\'}pP[]()_+';
