@@ -40,19 +40,27 @@ const connect = () => {
     ws.onclose = () => {
         tryReconnectRepeatly();
     }
+
+    ws.onerror = () => {
+        tryReconnectRepeatly();
+    }
 }
 
-const tryReconnectRepeatly = () => {
+const tryReconnectRepeatly = (interval = 1500) => {
     if (connectionIntervalId) {
         clearInterval(connectionIntervalId);
     }
 
+    if (ws) {
+        ws.close();
+        ws = null;
+    }
+
     connectionIntervalId = setInterval(() => {
-        console.log('tryReconnectRepeatly', ws?.readyState);
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             connect();
         }
-    }, 1000);
+    }, interval);
 }
 
 connect();
