@@ -1,5 +1,8 @@
 import jsonParseSafely from "../../shared/jsonParseSafely";
 import { DEVICE_KEY } from "../../shared/constants";
+import JSAppProxy from '../jsAppProxy';
+
+const jsAppIdToDebugger = new Map();
 
 /**
  * Defines a type for JSON-serializable values.
@@ -47,14 +50,17 @@ import { DEVICE_KEY } from "../../shared/constants";
  * @param {CustomMessageHandlerConnection} connection - The connection object, containing page, device, and debugger information.
  * @returns {CustomMessageHandler | null | undefined} The created custom message handler, or null/undefined if no handler should be applied.
  */
-export const createInspectorMessageHandler = (_connection) => {
+const createInspectorMessageHandler = (_connection) => {
   const connection = _connection;
-
-  // handlers
-  // TODO: initialize Network Inspector Handler
+  let jsAppId = null;
   
   return {
     handleDeviceMessage: (payload) => {
+        if (jsAppId && payload && payload.method === 'Runtime.executionContextDestroyed') {
+          jsAppIdToDebugger.delete(jsAppId);
+          jsAppId = null;
+        }
+
         if (!payload 
             || !payload.params 
             || !Array.isArray(payload.params.args) 
@@ -69,12 +75,32 @@ export const createInspectorMessageHandler = (_connection) => {
             return true; // anyway.. it's not a message for devtools.
         }
 
-        // TODO: process originPayload using handlers
+        if (originPayload.command === 'set-js-id' && originPayload.params?.id) {
+            jsAppId = originPayload.params.id;
+            jsAppIdToConnection.set(jsAppId, connection.debugger);
+        }
 
         return true; // stop
     },
     handleDebuggerMessage: (payload) => {
-        return false;// continue
+      if (jsAppId) {
+        const socket = JSAppProxy.getSocketFromJSAppId(jsAppId);
+        if (socket) {
+          socket.send(JSON.stringify(payload));
+        }
+      }
+
+      return false;// continue
+
     }
   }
 };
+
+const getDebuggerFromJSAppId = (jsAppId) => {
+  return jsAppIdToDebugger.get(jsAppId);
+}
+
+export default {
+  createInspectorMessageHandler,
+  getDebuggerFromJSAppId,
+}

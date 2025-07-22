@@ -20,9 +20,10 @@ import Metro from 'metro';
 import { Terminal } from 'metro-core';
 import path from 'path';
 import url from 'url';
-import { createInspectorMessageHandler } from './inspector-message-handler';
+import InspectorMessageHandler from './inspector-message-handler';
 import { DEVICE_KEY } from '../shared/constants';
 import { resolve as defaultResolve } from 'metro-resolver';
+import JSAppProxy from './jsAppProxy';
 
 async function runServer(
   _argv,
@@ -111,7 +112,7 @@ async function runServer(
     unstable_experiments: {
       enableNetworkInspector: true,
     },
-    unstable_customInspectorMessageHandler: createInspectorMessageHandler,
+    unstable_customInspectorMessageHandler: InspectorMessageHandler.createInspectorMessageHandler,
   });
 
   const reporter = {
@@ -140,6 +141,9 @@ async function runServer(
   };
   metroConfig.reporter = reporter;
 
+  const jsAppMiddlewareEndpoint = JSAppProxy.createJSAppMiddleware();
+
+
   const serverInstance = await Metro.runServer(metroConfig, {
     host: args.host,
     secure: args.https,
@@ -149,6 +153,7 @@ async function runServer(
     websocketEndpoints: {
       ...communityWebsocketEndpoints,
       ...websocketEndpoints,
+      ...jsAppMiddlewareEndpoint,
     },
   });
 

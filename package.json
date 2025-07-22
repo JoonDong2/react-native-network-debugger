@@ -33,7 +33,8 @@
     "metro-core": "*",
     "semver": "*",
     "react-native": "*",
-    "metro-resolver": "*"
+    "metro-resolver": "*",
+    "ws": "*"
   },
   "devDependencies": {
     "@react-native-community/cli-types": "18.0.0",
