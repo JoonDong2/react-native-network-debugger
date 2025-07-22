@@ -49,6 +49,7 @@ const connect = () => {
 const tryReconnectRepeatly = (interval = 1500) => {
     if (connectionIntervalId) {
         clearInterval(connectionIntervalId);
+        connectionIntervalId = null;
     }
 
     if (ws) {
