@@ -12,7 +12,7 @@ const sendToDevTools = (payload) => {
         return;
     }
     
-    const payloadString = jsonParseSafely(payload);
+    const payloadString = JSON.stringify(payload);
 
     if (!payloadString) {
         console.warn('payload is not a valid JSON string', payload);
