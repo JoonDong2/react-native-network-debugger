@@ -1,14 +1,13 @@
 {
-  "name": "react-native-dev-server",
+  "name": "react-native-network-debugger",
   "version": "0.0.1",
   "main": "dist/index.js",
-  "types": "dist/types/index.d.ts",
   "exports": {
-    "./dev-server": {
-      "default": "./dist/dev-server/index.js"
+    "./server": {
+      "default": "./dist/server/index.js"
     },
-    "./dev-client": {
-      "default": "./dist/dev-client/index.js"
+    "./client": {
+      "default": "./dist/client/index.js"
     }
   },
   "files": [

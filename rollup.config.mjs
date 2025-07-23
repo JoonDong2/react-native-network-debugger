@@ -6,10 +6,10 @@ import json from '@rollup/plugin-json';
 
 export default defineConfig([
   {
-    input: './src/dev-server/index.js',
+    input: './src/server/index.js',
     output: [
       {
-        file: './dist/dev-server/index.js',
+        file: './dist/server/index.js',
         format: 'cjs',
         sourcemap: false,
       },
@@ -24,10 +24,10 @@ export default defineConfig([
     ],
   },
   {
-    input: './src/dev-client/index.js',
+    input: './src/client/index.js',
     output: [
       {
-        file: './dist/dev-client/index.js',
+        file: './dist/client/index.js',
         format: 'cjs',
         sourcemap: false,
       },

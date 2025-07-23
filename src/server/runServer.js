@@ -52,7 +52,7 @@ async function runServer(
   metroConfig.resolver.resolveRequest = (context, moduleName, platform) => {
     if (moduleName === '../Core/InitializeCore') {
       return {
-        filePath: require.resolve('react-native-dev-server/dev-client'),
+        filePath: require.resolve('react-native-network-debugger/client'),
         type: 'sourceFile',
       }
     }
