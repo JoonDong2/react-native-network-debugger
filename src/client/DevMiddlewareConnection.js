@@ -5,7 +5,7 @@ import { DEVICE_KEY } from '../shared/constants';
  * @param {object} payload - 개발자 도구로 보낼 데이터 객체
  * @returns {void}
  */
-const sendToDevTools = (payload) => {
+const sendToDevMiddleware = (payload) => {
     if (!payload || typeof payload !== 'object') {
         console.warn('payload is not an object');
         return;
@@ -23,7 +23,7 @@ const sendToDevTools = (payload) => {
 
 export default {
     setId: (id) => {
-        sendToDevTools({
+        sendToDevMiddleware({
             command: 'set-js-id',
             params: {
                 id

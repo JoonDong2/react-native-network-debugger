@@ -4,7 +4,7 @@ let connectionIntervalId = null;
 import { JS_APP_URL } from '../shared/constants';
 import jsonParseSafely from '../shared/jsonParseSafely';
 import { NativeModules } from 'react-native'
-import DevToolsConnection from './DevToolsConnection';
+import DevMiddlewareConnection from './DevMiddlewareConnection';
 
 const INTERVAL_MS = 1500
 
@@ -38,7 +38,7 @@ const connect = () => {
         return;
     }
 
-    DevToolsConnection.setId(id);
+    DevMiddlewareConnection.setId(id);
 
     ws = new WebSocket(`ws://${host}:${port}${JS_APP_URL}?id=${id}`);
 
