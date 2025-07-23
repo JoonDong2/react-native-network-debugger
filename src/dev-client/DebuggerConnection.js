@@ -66,8 +66,6 @@ const connect = () => {
     }
 
     ws.onclose = tryReconnectRepeatly
-
-    ws.onerror = tryReconnectRepeatly
 }
 
 
@@ -77,6 +75,8 @@ const tryReconnectRepeatly = () => {
 
     clearWS();
 
+    connect();
+    
     connectionIntervalId = setInterval(() => {
         if (!ws || ws.readyState !== WebSocket.OPEN) {
             connect();
@@ -86,7 +86,6 @@ const tryReconnectRepeatly = () => {
 
 export default {
     connect: () => {
-        connect();
         tryReconnectRepeatly();
     },
     send: (cdpMessage) => {
