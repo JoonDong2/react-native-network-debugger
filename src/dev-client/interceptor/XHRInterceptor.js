@@ -7,9 +7,8 @@ let sendCallback;
 let requestHeaderCallback;
 let headerReceivedCallback;
 let responseCallback;
-
 let dataReceivedCallback; // 청크 데이터 수신 콜백
-let lastResponseLength = 0; // 마지막으로 받은 데이터 길이를 추적
+
 
 let isInterceptorEnabled = false;
 
@@ -132,12 +131,13 @@ const XHRInterceptor = {
                 );
               }
             }
+            // TODO: 확인 필요
             // 청크 데이터 처리
             if (this.readyState === this.LOADING) { 
               if (dataReceivedCallback) {
                 // this.responseText는 항상 누적된 전체 텍스트입니다.
-                const newResponseText = this.responseText.substring(lastResponseLength);
-                lastResponseLength = this.responseText.length;
+                const newResponseText = this.responseText.substring(this.__lastResponseLength__ ?? 0);
+                this.__lastResponseLength__ = this.responseText.length;
                 dataReceivedCallback(newResponseText, this);
               }
             }
@@ -167,4 +167,4 @@ const XHRInterceptor = {
   },
 };
 
-module.exports = XHRInterceptor;
+export default XHRInterceptor;

@@ -20,7 +20,7 @@ import Metro from 'metro';
 import { Terminal } from 'metro-core';
 import path from 'path';
 import url from 'url';
-import InspectorMessageHandler from './inspector-message-handler';
+import InspectorMessageHandler from './InspectorMessageHandler';
 import { DEVICE_KEY } from '../shared/constants';
 import { resolve as defaultResolve } from 'metro-resolver';
 import JSAppProxy from './jsAppProxy';

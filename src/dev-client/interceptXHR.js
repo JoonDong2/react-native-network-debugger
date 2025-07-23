@@ -1,4 +1,4 @@
-import XHRInterceptor from './XHRInterceptor';
+import XHRInterceptor from './interceptor/interceptor/XHRInterceptor';
 
 // 요청 정보를 임시 저장하는 맵
 // Key: requestId, Value: { request, responseBody, encodedDataLength }

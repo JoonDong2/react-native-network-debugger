@@ -21,4 +21,13 @@ const sendToDevTools = (payload) => {
     console.log(DEVICE_KEY, payloadString);
 };
 
-export default sendToDevTools;
+export default {
+    setId: (id) => {
+        sendToDevTools({
+            command: 'set-js-id',
+            params: {
+                id
+            }
+        })
+    }
+};

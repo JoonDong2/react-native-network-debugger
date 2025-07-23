@@ -1,8 +1,20 @@
-import jsonParseSafely from "../../shared/jsonParseSafely";
-import { DEVICE_KEY } from "../../shared/constants";
-import JSAppProxy from '../jsAppProxy';
+import jsonParseSafely from "../shared/jsonParseSafely";
+import { DEVICE_KEY } from "../shared/constants";
+import JSAppProxy from './jsAppProxy';
 
 const jsAppIdToDebugger = new Map();
+
+const validJSAppMessage = (payload) => {
+    return payload 
+    && payload.params 
+    && Array.isArray(payload.params.args) 
+    && payload.params.args.length === 2
+    && payload.params.args[0].value === DEVICE_KEY;
+}
+
+const extractOriginPayload = (payload) => {
+    return jsonParseSafely(payload.params.args[1].value);
+}
 
 /**
  * Defines a type for JSON-serializable values.
@@ -53,25 +65,23 @@ const jsAppIdToDebugger = new Map();
 const createInspectorMessageHandler = (_connection) => {
   const connection = _connection;
   let jsAppId = null;
+  let queue = [];
   
   return {
     handleDeviceMessage: (payload) => {
         if (jsAppId && payload && payload.method === 'Runtime.executionContextDestroyed') {
           jsAppIdToDebugger.delete(jsAppId);
           jsAppId = null;
+          queue = [];
         }
 
-        if (!payload 
-            || !payload.params 
-            || !Array.isArray(payload.params.args) 
-            || payload.params.args.length !== 2
-            || payload.params.args[0].value !== DEVICE_KEY) {
+        if (!validJSAppMessage(payload)) {
             return false; // continue
         }
 
-        const originPayload = jsonParseSafely(payload.params.args[1].value);
+        const originPayload = extractOriginPayload(payload);
         if (!originPayload) {
-            console.warn('payload is not a valid JSON string', payload.params.args[1].value)
+            console.warn('payload is not a valid JSON string')
             return true; // anyway.. it's not a message for devtools.
         }
 
@@ -86,7 +96,12 @@ const createInspectorMessageHandler = (_connection) => {
       if (jsAppId) {
         const socket = JSAppProxy.getSocketFromJSAppId(jsAppId);
         if (socket) {
-          socket.send(JSON.stringify(payload));
+            const oldQueue = queue;
+            queue = [];
+            oldQueue.forEach(oldPayload => socket.send(JSON.stringify(oldPayload)));
+            socket.send(JSON.stringify(payload));
+        } else {
+            queue.push(payload);
         }
       }
 

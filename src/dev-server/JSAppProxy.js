@@ -1,5 +1,5 @@
 import { JS_APP_URL } from "../shared/constants";
-import InspectorMessageHandler from "./inspector-message-handler";
+import InspectorMessageHandler from "./InspectorMessageHandler";
 import url from 'url';
 import WS from 'ws';
 
