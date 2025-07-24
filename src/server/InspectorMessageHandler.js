@@ -2,6 +2,19 @@ import jsonParseSafely from "../shared/jsonParseSafely";
 import { DEVICE_KEY } from "../shared/constants";
 import JSAppProxy from './jsAppProxy';
 
+const domains = [{
+  name: 'Network',
+  block: true
+}];
+
+const findDomain = (domain) => {
+  if (typeof domain !== 'string') {
+    return false;
+  }
+
+  return domains.find(d => domain.startsWith(d.name));
+}
+
 const jsAppIdToConnection = new Map();
 
 const validJSAppMessage = (payload) => {
@@ -93,7 +106,8 @@ const createInspectorMessageHandler = (_connection) => {
         return true; // stop
     },
     handleDebuggerMessage: (payload) => {
-      if (jsAppId) {
+      const domain = findDomain(payload.method);
+      if (jsAppId && domain) {
         const socket = JSAppProxy.getSocketFromJSAppId(jsAppId);
         if (socket) {
             const oldQueue = queue;
@@ -103,6 +117,8 @@ const createInspectorMessageHandler = (_connection) => {
         } else {
             queue.push(payload);
         }
+
+        return domain.block;
       }
 
       return false;// continue
