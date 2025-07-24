@@ -2,7 +2,7 @@ import jsonParseSafely from "../shared/jsonParseSafely";
 import { DEVICE_KEY } from "../shared/constants";
 import JSAppProxy from './jsAppProxy';
 
-const jsAppIdToDebugger = new Map();
+const jsAppIdToConnection = new Map();
 
 const validJSAppMessage = (payload) => {
     return payload 
@@ -70,7 +70,7 @@ const createInspectorMessageHandler = (_connection) => {
   return {
     handleDeviceMessage: (payload) => {
         if (jsAppId && payload && payload.method === 'Runtime.executionContextDestroyed') {
-          jsAppIdToDebugger.delete(jsAppId);
+          jsAppIdToConnection.delete(jsAppId);
           jsAppId = null;
           queue = [];
         }
@@ -112,7 +112,7 @@ const createInspectorMessageHandler = (_connection) => {
 };
 
 const getDebuggerFromJSAppId = (jsAppId) => {
-  return jsAppIdToDebugger.get(jsAppId);
+  return jsAppIdToConnection.get(jsAppId);
 }
 
 export default {

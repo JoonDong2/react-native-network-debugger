@@ -71,7 +71,7 @@ const createJSAppMiddleware = () => {
         idToSocket.set(appId, socket);
 
         socket.on('message', (message) => {
-            if (message !== 'pong') {
+            if (message === 'pong') {
                 return;
             }
             
