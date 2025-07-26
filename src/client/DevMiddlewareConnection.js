@@ -24,7 +24,7 @@ const sendToDevMiddleware = (payload) => {
 export default {
     setId: (id) => {
         sendToDevMiddleware({
-            command: 'set-js-id',
+            method: 'JSApp.setAppId',
             params: {
                 id
             }

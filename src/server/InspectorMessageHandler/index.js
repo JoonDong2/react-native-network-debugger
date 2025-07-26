@@ -1,19 +1,8 @@
-import jsonParseSafely from "../shared/jsonParseSafely";
-import { DEVICE_KEY } from "../shared/constants";
-import JSAppProxy from './jsAppProxy';
-
-const domains = [{
-  name: 'Network',
-  block: true
-}];
-
-const findDomain = (domain) => {
-  if (typeof domain !== 'string') {
-    return false;
-  }
-
-  return domains.find(d => domain.startsWith(d.name));
-}
+import jsonParseSafely from "../../shared/jsonParseSafely";
+import { DEVICE_KEY } from "../../shared/constants";
+import Network from "./domains/Network";
+import JSApp from "./domains/JSApp";
+import makeDomains from "./makeDomains";
 
 const jsAppIdToConnection = new Map();
 
@@ -77,15 +66,15 @@ const extractOriginPayload = (payload) => {
  */
 const createInspectorMessageHandler = (_connection) => {
   const connection = _connection;
-  let jsAppId = null;
-  let queue = [];
+
+  const domains = makeDomains([new Network(connection), new JSApp()]);
   
   return {
     handleDeviceMessage: (payload) => {
-        if (jsAppId && payload && payload.method === 'Runtime.executionContextDestroyed') {
-          jsAppIdToConnection.delete(jsAppId);
-          jsAppId = null;
-          queue = [];
+        const domain1 = domains.get(payload.method);
+
+        if (domain1) {
+            return domain1.handler(connection, payload);
         }
 
         if (!validJSAppMessage(payload)) {
@@ -93,36 +82,22 @@ const createInspectorMessageHandler = (_connection) => {
         }
 
         const originPayload = extractOriginPayload(payload);
-        if (!originPayload) {
-            console.warn('payload is not a valid JSON string')
-            return true; // anyway.. it's not a message for devtools.
-        }
+        const domain2 = domains.get(originPayload.method);
 
-        if (originPayload.command === 'set-js-id' && originPayload.params?.id) {
-            jsAppId = originPayload.params.id;
-            jsAppIdToConnection.set(jsAppId, connection.debugger);
+        if (domain2) {
+            return domain2.handler(connection, originPayload);
         }
 
         return true; // stop
     },
     handleDebuggerMessage: (payload) => {
-      const domain = findDomain(payload.method);
-      if (jsAppId && domain) {
-        const socket = JSAppProxy.getSocketFromJSAppId(jsAppId);
-        if (socket) {
-            const oldQueue = queue;
-            queue = [];
-            oldQueue.forEach(oldPayload => socket.send(JSON.stringify(oldPayload)));
-            socket.send(JSON.stringify(payload));
-        } else {
-            queue.push(payload);
-        }
+      const domain = domains.get(payload.method);
 
-        return domain.block;
+      if (domain) {
+        return domain.handler(connection, payload);
       }
 
-      return false;// continue
-
+      return false; // continue
     }
   }
 };

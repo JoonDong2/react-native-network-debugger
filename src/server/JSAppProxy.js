@@ -5,7 +5,10 @@ import WS from 'ws';
 
 let appCounter = 0;
 
-const idToSocket = new Map();
+const idToAppConnection = new Map(); // key: appId, value: app connection
+const idToDebuggerConnection = new Map(); // key: app id, value: debugger connection
+
+const listenersMap = new Map(); // key: app id or debugger connection, value: Set<listener>
 
 const DEBUGGER_HEARTBEAT_INTERVAL_MS = 10000;
 const MAX_PONG_LATENCY_MS = 5000;
@@ -18,7 +21,6 @@ const createJSAppMiddleware = () => {
     });
 
     const _startHeartbeat = (socket, intervalMs) => {
-        let shouldSetTerminateTimeout = false;
         let terminateTimeout = null;
 
         const pingTimeout = setTimeout(() => {
@@ -26,8 +28,6 @@ const createJSAppMiddleware = () => {
                 pingTimeout.refresh();
                 return;
             }
-
-            shouldSetTerminateTimeout = true;
 
             socket.send('ping')
             terminateTimeout = setTimeout(() => {
@@ -44,7 +44,6 @@ const createJSAppMiddleware = () => {
                 return;
             }
 
-            shouldSetTerminateTimeout = false;
             terminateTimeout && clearTimeout(terminateTimeout);
             pingTimeout.refresh();
         }
@@ -52,7 +51,6 @@ const createJSAppMiddleware = () => {
         socket.on('message', onPong);
 
         socket.on('close', () => {
-            shouldSetTerminateTimeout = false;
             terminateTimeout && clearTimeout(terminateTimeout);
             clearTimeout(pingTimeout);
         })
@@ -63,28 +61,36 @@ const createJSAppMiddleware = () => {
         const query = url.parse(req.url || '', true).query || {};
         const appId = query.id || fallbackDeviceId;
 
-        const oldSocket = idToSocket.get(appId);
-        if (oldSocket) {
-            oldSocket.close();
-        }
+        idToAppConnection.set(appId, {
+            sendMessage: (message) => {
+                socket.send(JSON.stringify(message));
+            }
+        });
 
-        idToSocket.set(appId, socket);
+        // notify app connection registration
+        const listeners = listenersMap.get(appId);
+        listeners?.forEach(listener => listener());
+
+        const dubugerConnection = idToDebuggerConnection.get(appId);
+        if (dubugerConnection) {
+            const listeners = listenersMap.get(dubugerConnection);
+            listeners.forEach(listener => listener());
+        }
 
         socket.on('message', (message) => {
             if (message === 'pong') {
                 return;
             }
             
-            const _debugger = InspectorMessageHandler.getDebuggerFromJSAppId(appId);
-            if (_debugger) {
-                _debugger.sendMessage(message);
-            }
-        })
+            const debuggerConnection = idToDebuggerConnection.get(appId);
+            debuggerConnection?.sendMessage(message);
+        });
 
         _startHeartbeat(socket, DEBUGGER_HEARTBEAT_INTERVAL_MS);
 
         socket.on('close', () => {
-            idToSocket.delete(appId);
+            idToAppConnection.delete(appId);
+            listenersMap.delete(appId);
         });
     });
 
@@ -93,11 +99,31 @@ const createJSAppMiddleware = () => {
     }
 }
 
-const getSocketFromJSAppId = (appId) => {
-    return idToSocket.get(appId);
+const getAppConnection = (id) => {
+    return idToAppConnection.get(id)
+}
+
+const addAppConnectionListener = (appIdOrDebuggerConnection, listener) => {
+    let listeners = listenersMap.get(appIdOrDebuggerConnection);
+    if (!listeners) {
+        listeners = new Set();
+        listenersMap.set(appIdOrDebuggerConnection, listeners);
+    }
+    listeners.add(listener);
+
+    return () => {
+        listeners.delete(listener);
+        if (listeners.size === 0) {
+            listenersMap.delete(appIdOrDebuggerConnection);
+        }
+    }
 }
 
 export default {
     createJSAppMiddleware,
-    getSocketFromJSAppId,
+    getAppConnection,
+    addAppConnectionListener,
+    setDebuggerConnection: (appId, debuggerConnection) => {
+        idToDebuggerConnection.set(appId, debuggerConnection);
+    },
 }
