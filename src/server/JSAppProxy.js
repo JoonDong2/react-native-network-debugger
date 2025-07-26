@@ -63,7 +63,8 @@ const createJSAppMiddleware = () => {
 
         idToAppConnection.set(appId, {
             sendMessage: (message) => {
-                socket.send(JSON.stringify(message));
+                const stringifiedMessage = typeof message === 'string' ? message : JSON.stringify(message);
+                socket.send(stringifiedMessage);
             }
         });
 
@@ -83,7 +84,7 @@ const createJSAppMiddleware = () => {
             }
             
             const debuggerConnection = idToDebuggerConnection.get(appId);
-            debuggerConnection?.sendMessage(message);
+            debuggerConnection?.sendMessage(JSON.parse(message));
         });
 
         _startHeartbeat(socket, DEBUGGER_HEARTBEAT_INTERVAL_MS);

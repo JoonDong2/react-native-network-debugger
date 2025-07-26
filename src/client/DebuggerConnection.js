@@ -33,6 +33,15 @@ const clearInterval = () => {
     }
 }
 
+const send = (message) => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+        const stringifiedMessage = typeof message === 'string' ? message : JSON.stringify(message);
+        ws.send(stringifiedMessage);
+    } else {
+        sendQueue.push(message);
+    }
+}
+
 const connect = () => {
     if (ws && ws.readyState === WebSocket.OPEN) {
         return;
@@ -60,9 +69,7 @@ const connect = () => {
 
         const oldQueue = sendQueue;
         sendQueue = [];
-        oldQueue.forEach(oldMessage => {
-            ws.send(JSON.stringify(oldMessage));
-        });
+        oldQueue.forEach(send);
     }
 
     ws.onclose = tryReconnectRepeatly
@@ -88,16 +95,7 @@ export default {
     connect: () => {
         tryReconnectRepeatly();
     },
-    send: (cdpMessage) => {
-        if (ws) {
-            const oldQueue = sendQueue
-            sendQueue = [];
-            oldQueue.forEach(oldMessage => ws.send(JSON.stringify(oldMessage)))
-            ws.send(JSON.stringify(cdpMessage));
-        } else {
-            sendQueue.push(cdpMessage)
-        }
-    },
+    send,
     addEventListener: (listener) => {
         listeners.add(listener);
         return () => {
