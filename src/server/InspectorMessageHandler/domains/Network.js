@@ -35,6 +35,11 @@ class Network extends Domain {
         'Network.disable': () => {
             this.enabled = false;
             return Domain.BLOCK;
+        },
+        'Network.getResponseBody': (connection, payload) => {
+            const appConnection = JSAppProxy.getAppConnection(connection.debugger);
+            appConnection?.sendMessage(payload);
+            return Domain.BLOCK;
         }
     }
 
