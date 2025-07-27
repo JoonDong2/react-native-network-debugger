@@ -1,12 +1,12 @@
 import { JS_APP_URL } from "../shared/constants";
-import InspectorMessageHandler from "./InspectorMessageHandler";
 import url from 'url';
 import WS from 'ws';
 
 let appCounter = 0;
 
 const idToAppConnection = new Map(); // key: appId, value: app connection
-const idToDebuggerConnection = new Map(); // key: app id, value: debugger connection
+
+const idToDebuggerConnection = new Map();
 
 const listenersMap = new Map(); // key: app id or debugger connection, value: Set<listener>
 
@@ -69,20 +69,17 @@ const createJSAppMiddleware = () => {
         });
 
         // notify app connection registration
-        const listeners = listenersMap.get(appId);
-        listeners?.forEach(listener => listener());
-
         const dubugerConnection = idToDebuggerConnection.get(appId);
         if (dubugerConnection) {
             const listeners = listenersMap.get(dubugerConnection);
-            listeners.forEach(listener => listener());
+            listeners?.forEach(listener => listener());
         }
 
         socket.on('message', (message) => {
             if (message === 'pong') {
                 return;
             }
-            
+
             const debuggerConnection = idToDebuggerConnection.get(appId);
             debuggerConnection?.sendMessage(JSON.parse(message));
         });
@@ -91,6 +88,7 @@ const createJSAppMiddleware = () => {
 
         socket.on('close', () => {
             idToAppConnection.delete(appId);
+            idToDebuggerConnection.delete(appId);
             listenersMap.delete(appId);
         });
     });
@@ -100,8 +98,8 @@ const createJSAppMiddleware = () => {
     }
 }
 
-const getAppConnection = (id) => {
-    return idToAppConnection.get(id)
+const getAppConnection = (appId) => {
+    return idToAppConnection.get(appId)
 }
 
 const addAppConnectionListener = (appIdOrDebuggerConnection, listener) => {
@@ -120,11 +118,13 @@ const addAppConnectionListener = (appIdOrDebuggerConnection, listener) => {
     }
 }
 
+const setDebuggerConnection = (appId, debuggerConnection) => {
+    idToDebuggerConnection.set(appId, debuggerConnection);
+};
+
 export default {
     createJSAppMiddleware,
     getAppConnection,
     addAppConnectionListener,
-    setDebuggerConnection: (appId, debuggerConnection) => {
-        idToDebuggerConnection.set(appId, debuggerConnection);
-    },
+    setDebuggerConnection,
 }
