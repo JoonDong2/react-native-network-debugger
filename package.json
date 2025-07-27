@@ -30,9 +30,9 @@
     "metro": "*",
     "metro-config": "*",
     "metro-core": "*",
-    "semver": "*",
-    "react-native": "*",
     "metro-resolver": "*",
+    "react-native": "*",
+    "semver": "*",
     "ws": "*"
   },
   "devDependencies": {
@@ -41,6 +41,7 @@
     "@rollup/plugin-commonjs": "^25.0.8",
     "@rollup/plugin-json": "^6.1.0",
     "@rollup/plugin-node-resolve": "^15.2.3",
+    "base64-js": "^1.5.1",
     "invariant": "2.2.4",
     "rollup": "^4.18.0",
     "rollup-plugin-peer-deps-external": "^2.2.4",
