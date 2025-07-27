@@ -82,7 +82,7 @@ const createJSAppMiddleware = () => {
             }
 
             const debuggerConnection = idToDebuggerConnection.get(appId);
-            debuggerConnection?.sendMessage(JSON.parse(message));
+            debuggerConnection?.sendMessage(typeof message === 'string' ? JSON.parse(message) : message);
         });
 
         _startHeartbeat(socket, DEBUGGER_HEARTBEAT_INTERVAL_MS);
