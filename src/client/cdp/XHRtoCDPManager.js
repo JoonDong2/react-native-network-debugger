@@ -14,11 +14,11 @@ const xhrToRequestId = new WeakMap();
 
 // TODO: intercept XHR requests/response and send CDP messages using DubuggerConnection.send
 XHRInterceptor.setOpenCallback((method, url, xhr) => {
-    if (url === 'http://localhost:8081/symbolicate') {
+    if (url.endsWith('/symbolicate')) {
         return;
     }
 
-    const requestId = String(getId());
+    const requestId = `xhr-${getId()}`;
     xhrToRequestId.set(xhr, requestId);
 
     requests.set(requestId, {
