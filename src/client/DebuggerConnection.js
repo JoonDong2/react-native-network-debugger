@@ -9,6 +9,8 @@ import DevMiddlewareConnection from './DevMiddlewareConnection';
 
 const INTERVAL_MS = 1500;
 
+let socketId = null;
+
 const listeners = new Set();
 let sendQueue = [];
 
@@ -69,6 +71,7 @@ const connect = () => {
     }
 
     ws.onopen = () => {
+        socketId = ws._socketId;
         isConnecting = false;
         stopReconnectTimer();
 
@@ -106,5 +109,8 @@ export default {
         return () => {
             listeners.delete(listener);
         }
+    },
+    getSocketId: () => {
+        return socketId;
     }
 }
