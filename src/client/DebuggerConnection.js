@@ -1,12 +1,13 @@
 let ws = null;
 let connectionIntervalId = null;
+let isConnecting = false;
 
 import { JS_APP_URL } from '../shared/constants';
 import jsonParseSafely from '../shared/jsonParseSafely';
 import { NativeModules } from 'react-native'
 import DevMiddlewareConnection from './DevMiddlewareConnection';
 
-const INTERVAL_MS = 1500
+const INTERVAL_MS = 1500;
 
 const listeners = new Set();
 let sendQueue = [];
@@ -15,18 +16,21 @@ const id = Math.random().toString(36).substring(2, 15);
 const scriptURL = NativeModules?.SourceCode?.scriptURL ?? '';
 
 const regex = /:\/\/([^/:]+):(\d+)/;
-
 const match = scriptURL.match(regex);
 const [, host, port] = match;
 
 const clearWS = () => {
     if (ws) {
+        ws.onopen = null;
+        ws.onmessage = null;
+        ws.onerror = null;
+        ws.onclose = null;
         ws.close();
         ws = null;
     }
 }
 
-const clearInterval = () => {
+const stopReconnectTimer = () => {
     if (connectionIntervalId) {
         clearInterval(connectionIntervalId);
         connectionIntervalId = null;
@@ -43,10 +47,11 @@ const send = (message) => {
 }
 
 const connect = () => {
-    if (ws && ws.readyState === WebSocket.OPEN) {
+    if ((ws && ws.readyState === WebSocket.OPEN) || isConnecting) {
         return;
     }
 
+    isConnecting = true;
     DevMiddlewareConnection.setId(id);
 
     ws = new WebSocket(`ws://${host}:${port}${JS_APP_URL}?id=${id}`);
@@ -56,44 +61,44 @@ const connect = () => {
             ws.send('pong');
             return;
         }
-
+        
         const parsedData = jsonParseSafely(event.data);
-
         if (parsedData) {
             listeners.forEach(listener => listener(parsedData));
         }
     }
 
     ws.onopen = () => {
-        clearInterval();
+        isConnecting = false;
+        stopReconnectTimer();
 
         const oldQueue = sendQueue;
         sendQueue = [];
         oldQueue.forEach(send);
     }
 
-    ws.onclose = tryReconnectRepeatly
+    ws.onclose = () => {
+        isConnecting = false;
+        clearWS();
+        startReconnectProcess();
+    }
+    
+    ws.onerror = () => {
+        isConnecting = false;
+    }
 }
 
-
-
-const tryReconnectRepeatly = () => {
-    clearInterval();
-
-    clearWS();
-
+const startReconnectProcess = () => {
+    stopReconnectTimer();
     connect();
-    
     connectionIntervalId = setInterval(() => {
-        if (!ws || ws.readyState !== WebSocket.OPEN) {
-            connect();
-        }
+        connect();
     }, INTERVAL_MS);
 }
 
 export default {
     connect: () => {
-        tryReconnectRepeatly();
+        startReconnectProcess();
     },
     send,
     addEventListener: (listener) => {
