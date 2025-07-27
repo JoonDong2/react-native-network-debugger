@@ -1,4 +1,4 @@
-import jsAppProxy from "../../jsAppProxy";
+import JSAppProxy from "../../JSAppProxy";
 import Domain from "./Domain";
 
 class Network extends Domain {
@@ -10,8 +10,8 @@ class Network extends Domain {
 
     constructor(connection) {
         super();
-        jsAppProxy.addAppConnectionListener(connection.debugger, () => {
-            const appConnection = jsAppProxy.getAppConnection(connection.debugger);
+        JSAppProxy.addAppConnectionListener(connection.debugger, () => {
+            const appConnection = JSAppProxy.getAppConnection(connection.debugger);
             this.#flushQueue(appConnection);
         });
     }
