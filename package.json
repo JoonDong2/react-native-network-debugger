@@ -14,7 +14,8 @@
     "dist"
   ],
   "scripts": {
-    "build": "rollup -c"
+    "build": "rollup -c",
+    "prepare": "rollup -c"
   },
   "dependencies": {
     "@rollup/plugin-typescript": "^11.1.6",
