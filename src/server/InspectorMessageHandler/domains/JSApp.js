@@ -1,4 +1,4 @@
-import jsAppProxy from "../../jsAppProxy";
+import JSAppProxy from "../../JSAppProxy";
 import Domain from "./Domain";
 
 class JSApp extends Domain {
@@ -7,7 +7,7 @@ class JSApp extends Domain {
     handler = (connection, payload) => {
         if (payload.method === 'JSApp.setAppId') {
             const appId = payload.params.id;
-            jsAppProxy.setDebuggerConnection(appId, connection.debugger);
+            JSAppProxy.setDebuggerConnection(appId, connection.debugger);
             
             return Domain.BLOCK;
         }

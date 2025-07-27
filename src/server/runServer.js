@@ -23,7 +23,7 @@ import url from 'url';
 import InspectorMessageHandler from './InspectorMessageHandler';
 import { DEVICE_KEY } from '../shared/constants';
 import { resolve as defaultResolve } from 'metro-resolver';
-import JSAppProxy from './jsAppProxy';
+import JSAppProxy from './JSAppProxy';
 
 async function runServer(
   _argv,

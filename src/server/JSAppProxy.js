@@ -7,6 +7,7 @@ let appCounter = 0;
 const idToAppConnection = new Map(); // key: appId, value: app connection
 
 const idToDebuggerConnection = new Map();
+const dubbgerConnectionToId = new Map();
 
 const listenersMap = new Map(); // key: app id or debugger connection, value: Set<listener>
 
@@ -89,6 +90,10 @@ const createJSAppMiddleware = () => {
         socket.on('close', () => {
             idToAppConnection.delete(appId);
             idToDebuggerConnection.delete(appId);
+            const dubugerConnection = idToDebuggerConnection.get(appId);
+            if (dubugerConnection) {
+                dubbgerConnectionToId.delete(dubugerConnection);
+            }
             listenersMap.delete(appId);
         });
     });
@@ -98,8 +103,9 @@ const createJSAppMiddleware = () => {
     }
 }
 
-const getAppConnection = (appId) => {
-    return idToAppConnection.get(appId)
+const getAppConnection = (debuggerConnection) => {
+    const appId = dubbgerConnectionToId.get(debuggerConnection);
+    return idToAppConnection.get(appId);
 }
 
 const addAppConnectionListener = (appIdOrDebuggerConnection, listener) => {
@@ -120,6 +126,7 @@ const addAppConnectionListener = (appIdOrDebuggerConnection, listener) => {
 
 const setDebuggerConnection = (appId, debuggerConnection) => {
     idToDebuggerConnection.set(appId, debuggerConnection);
+    dubbgerConnectionToId.set(debuggerConnection, appId);
 };
 
 export default {
