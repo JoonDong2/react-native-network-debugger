@@ -21,7 +21,8 @@
   "dependencies": {
     "@rollup/plugin-typescript": "^11.1.6",
     "@rollup/plugin-url": "^8.0.2",
-    "rollup-plugin-dts": "^6.1.1"
+    "rollup-plugin-dts": "^6.1.1",
+    "uuid": "^11.1.0"
   },
   "peerDependencies": {
     "@react-native/dev-middleware": "*",
