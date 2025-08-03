@@ -15,7 +15,12 @@ const listeners = new Set();
 let sendQueue = [];
 
 const id = Math.random().toString(36).substring(2, 15);
-const scriptURL = NativeModules?.SourceCode?.scriptURL ?? '';
+let scriptURL
+if (typeof NativeModules?.SourceCode?.getConstants === 'function') {
+    scriptURL = NativeModules.SourceCode.getConstants().scriptURL;
+} else{
+    scriptURL = NativeModules?.SourceCode?.scriptURL ?? '';
+}
 
 const regex = /:\/\/([^/:]+):(\d+)/;
 const match = scriptURL.match(regex);
