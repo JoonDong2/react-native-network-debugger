@@ -16,7 +16,7 @@ export default defineConfig([
     ],
     plugins: [
       json(),
-      external({ includeDependencies: true }),
+      external(),
       resolve({
         preferBuiltins: true,
       }),
@@ -34,7 +34,7 @@ export default defineConfig([
     ],
     plugins: [
       json(),
-      external({ includeDependencies: true }),
+      external(),
       resolve({
         preferBuiltins: true,
       }),
