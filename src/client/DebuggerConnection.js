@@ -4,8 +4,8 @@ let isConnecting = false;
 
 import { JS_APP_URL } from '../shared/constants';
 import jsonParseSafely from '../shared/jsonParseSafely';
-import { NativeModules } from 'react-native'
 import DevMiddlewareConnection from './DevMiddlewareConnection';
+import { getHost } from './utils/host';
 
 const INTERVAL_MS = 1500;
 
@@ -15,16 +15,7 @@ const listeners = new Set();
 let sendQueue = [];
 
 const id = Math.random().toString(36).substring(2, 15);
-let scriptURL
-if (typeof NativeModules?.SourceCode?.getConstants === 'function') {
-    scriptURL = NativeModules.SourceCode.getConstants().scriptURL;
-} else{
-    scriptURL = NativeModules?.SourceCode?.scriptURL ?? '';
-}
-
-const regex = /:\/\/([^/:]+):(\d+)/;
-const match = scriptURL.match(regex);
-const [, host, port] = match;
+const { host, port } = getHost();
 
 const clearWS = () => {
     if (ws) {
