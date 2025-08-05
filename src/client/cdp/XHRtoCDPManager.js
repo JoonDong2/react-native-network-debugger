@@ -2,6 +2,7 @@ import DebuggerConnection from '../DebuggerConnection';
 import XHRInterceptor from '../interceptor/XHRInterceptor';
 import { getId } from '../utils/id';
 import { NativeModules } from 'react-native'
+import { getHost } from '../utils/host';
 
 // 요청 정보를 임시 저장하는 맵
 // Key: requestId, Value: { request, responseBody, encodedDataLength }
@@ -12,9 +13,15 @@ const requests = new Map();
 // Key: XMLHttpRequest instance, Value: requestId 
 const xhrToRequestId = new WeakMap();
 
+
+const { host, port } = getHost();
+const ignores = [
+    `http://${host}:${port}/symbolicate`,
+]
+
 // TODO: intercept XHR requests/response and send CDP messages using DubuggerConnection.send
 XHRInterceptor.setOpenCallback((method, url, xhr) => {
-    if (url.endsWith('/symbolicate')) {
+    if (ignores.includes(url)) {
         return;
     }
 
