@@ -25,7 +25,6 @@
     "@react-native/dev-middleware": "*",
     "@react-native/metro-config": "*",
     "chalk": "*",
-    "connect": "*",
     "debug": "*",
     "metro": "*",
     "metro-config": "*",
