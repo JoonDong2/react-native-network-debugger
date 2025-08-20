@@ -50,13 +50,6 @@ class Network extends Domain {
             return specificHandler(connection, payload);
         }
 
-        if (this.enabled) {
-            this.queue.push(payload);
-            return Domain.BLOCK;
-        } 
-        
-        // TODO: Send Network.getResponseBody method etc. to JS app
-
         return Domain.BLOCK;
     }
 }
