@@ -22,7 +22,12 @@ export default defineConfig([
         preferBuiltins: true,
       }),
       commonjs(),
-      terser(),
+      terser({
+        format: {
+          comments: false,
+        },
+        compress: true,
+      }),
     ],
   },
   {
@@ -41,7 +46,12 @@ export default defineConfig([
         preferBuiltins: true,
       }),
       commonjs(),
-      terser(),
+      terser({
+        format: {
+          comments: false,
+        },
+        compress: true,
+      }),
     ],
   },
 ]);
