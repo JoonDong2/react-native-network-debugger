@@ -1,0 +1,114 @@
+/**
+ * Copyright (c) Meta Platforms, Inc. and affiliates.
+ *
+ * This source code is licensed under the MIT license found in the
+ * LICENSE file in the root directory of this source tree.
+ *
+ * @format
+ * @oncall react_native
+ */
+
+import { CLIError } from './errors';
+import { reactNativePlatformResolver } from './metroPlatformResolver';
+import { loadConfig, mergeConfig, resolveConfig } from 'metro-config';
+import path from 'path';
+import type { CLIConfig, MetroConfigOptions, ResolveRequest } from '../../types/metro';
+
+const debug = require('debug')('ReactNative:CommunityCliPlugin');
+
+interface MetroConfig {
+  resolver?: {
+    platforms?: string[];
+    resolveRequest?: ResolveRequest;
+  };
+  serializer?: {
+    getModulesRunBeforeMainModule?: () => string[];
+  };
+  [key: string]: unknown;
+}
+
+/**
+ * Get the config options to override based on RN CLI inputs.
+ */
+function getOverrideConfig(ctx: CLIConfig, config: MetroConfig): Partial<MetroConfig> {
+  const outOfTreePlatforms = Object.keys(ctx.platforms).filter(
+    (platform) => ctx.platforms[platform].npmPackageName
+  );
+  const resolver: NonNullable<MetroConfig['resolver']> = {
+    platforms: [...Object.keys(ctx.platforms), 'native'],
+  };
+
+  if (outOfTreePlatforms.length) {
+    resolver.resolveRequest = reactNativePlatformResolver(
+      outOfTreePlatforms.reduce<Record<string, string>>((result, platform) => {
+        result[platform] = ctx.platforms[platform].npmPackageName!;
+        return result;
+      }, {}),
+      config.resolver?.resolveRequest
+    );
+  }
+
+  return {
+    resolver,
+    serializer: {
+      // We can include multiple copies of InitializeCore here because metro will
+      // only add ones that are already part of the bundle
+      getModulesRunBeforeMainModule: () => [
+        require.resolve(
+          path.join(ctx.reactNativePath, 'Libraries/Core/InitializeCore'),
+          { paths: [ctx.root] }
+        ),
+        ...outOfTreePlatforms.map((platform) =>
+          require.resolve(
+            `${ctx.platforms[platform].npmPackageName}/Libraries/Core/InitializeCore`,
+            { paths: [ctx.root] }
+          )
+        ),
+      ],
+    },
+  };
+}
+
+/**
+ * Load Metro config.
+ *
+ * Allows the CLI to override select values in `metro.config.js` based on
+ * dynamic user options in `ctx`.
+ */
+export default async function loadMetroConfig(
+  ctx: CLIConfig,
+  options: MetroConfigOptions = {}
+): Promise<MetroConfig> {
+  const cwd = ctx.root;
+  const projectConfig = await resolveConfig(options.config, cwd);
+
+  if (projectConfig.isEmpty) {
+    throw new CLIError(`No Metro config found in ${cwd}`);
+  }
+
+  debug(`Reading Metro config from ${projectConfig.filepath}`);
+
+  if (!(global as Record<string, unknown>).__REACT_NATIVE_METRO_CONFIG_LOADED) {
+    const warning = `
+=================================================================================================
+From React Native 0.73, your project's Metro config should extend '@react-native/metro-config'
+or it will fail to build. Please copy the template at:
+https://github.com/react-native-community/template/blob/main/template/metro.config.js
+This warning will be removed in future (https://github.com/facebook/metro/issues/1018).
+=================================================================================================
+    `;
+
+    for (const line of warning.trim().split('\n')) {
+      console.warn(line);
+    }
+  }
+
+  const config = await loadConfig({
+    cwd,
+    ...options,
+  });
+
+  const overrideConfig = getOverrideConfig(ctx, config as MetroConfig);
+
+  return mergeConfig(config, overrideConfig) as MetroConfig;
+}
