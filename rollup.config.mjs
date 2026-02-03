@@ -4,10 +4,11 @@ import commonjs from "@rollup/plugin-commonjs";
 import external from "rollup-plugin-peer-deps-external";
 import json from "@rollup/plugin-json";
 import { terser } from "rollup-plugin-terser";
+import typescript from "@rollup/plugin-typescript";
 
 export default defineConfig([
   {
-    input: "./src/server/index.js",
+    input: "./src/server/index.ts",
     output: [
       {
         file: "./dist/server/index.js",
@@ -22,6 +23,10 @@ export default defineConfig([
         preferBuiltins: true,
       }),
       commonjs(),
+      typescript({
+        tsconfig: "./tsconfig.json",
+        declaration: false,
+      }),
       terser({
         format: {
           comments: false,
@@ -31,7 +36,7 @@ export default defineConfig([
     ],
   },
   {
-    input: "./src/client/index.js",
+    input: "./src/client/index.ts",
     output: [
       {
         file: "./dist/client/index.js",
@@ -46,6 +51,10 @@ export default defineConfig([
         preferBuiltins: true,
       }),
       commonjs(),
+      typescript({
+        tsconfig: "./tsconfig.json",
+        declaration: false,
+      }),
       terser({
         format: {
           comments: false,
