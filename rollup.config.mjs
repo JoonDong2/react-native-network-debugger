@@ -24,9 +24,6 @@ export default defineConfig([
       commonjs(),
       terser(),
     ],
-    treeshake: {
-      moduleSideEffects: false,
-    },
   },
   {
     input: "./src/client/index.js",
