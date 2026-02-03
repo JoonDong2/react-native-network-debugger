@@ -168,7 +168,7 @@ async function runServer(_argv, cliConfig, args) {
   //
   // For more info: https://github.com/nodejs/node/issues/13391
   //
-  serverInstance.keepAliveTimeout = 45000;
+  serverInstance.keepAliveTimeout = 30000;
 
   await version.logIfUpdateAvailable(cliConfig, terminalReporter);
 }
