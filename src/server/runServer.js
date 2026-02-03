@@ -8,28 +8,24 @@
  * @oncall react_native
  */
 
-import createDevMiddlewareLogger from './utils/createDevMiddlewareLogger';
-import isDevServerRunning from './utils/isDevServerRunning';
-import loadMetroConfig from './utils/loadMetroConfig';
-import * as version from './utils/version';
-import attachKeyHandlers from './attachKeyHandlers';
-import { createDevServerMiddleware } from './middleware';
-import { createDevMiddleware } from '@react-native/dev-middleware';
-import chalk from 'chalk';
-import Metro from 'metro';
-import { Terminal } from 'metro-core';
-import path from 'path';
-import url from 'url';
-import InspectorMessageHandler from './InspectorMessageHandler';
-import { DEVICE_KEY } from '../shared/constants';
-import { resolve as defaultResolve } from 'metro-resolver';
-import JSAppProxy from './JSAppProxy';
+import createDevMiddlewareLogger from "./utils/createDevMiddlewareLogger";
+import isDevServerRunning from "./utils/isDevServerRunning";
+import loadMetroConfig from "./utils/loadMetroConfig";
+import * as version from "./utils/version";
+import attachKeyHandlers from "./attachKeyHandlers";
+import { createDevServerMiddleware } from "./middleware";
+import { createDevMiddleware } from "@react-native/dev-middleware";
+import chalk from "chalk";
+import Metro from "metro";
+import { Terminal } from "metro-core";
+import path from "path";
+import url from "url";
+import InspectorMessageHandler from "./InspectorMessageHandler";
+import { DEVICE_KEY } from "../shared/constants";
+import { resolve as defaultResolve } from "metro-resolver";
+import JSAppProxy from "./JSAppProxy";
 
-async function runServer(
-  _argv,
-  cliConfig,
-  args,
-) {
+async function runServer(_argv, cliConfig, args) {
   const metroConfig = await loadMetroConfig(cliConfig, {
     config: args.config,
     maxWorkers: args.maxWorkers,
@@ -39,41 +35,44 @@ async function runServer(
     projectRoot: args.projectRoot,
     sourceExts: args.sourceExts,
   });
-  const hostname = args.host?.length ? args.host : 'localhost';
+  const hostname = args.host?.length ? args.host : "localhost";
   const {
     projectRoot,
     server: { port },
     watchFolders,
   } = metroConfig;
-  const protocol = args.https === true ? 'https' : 'http';
+  const protocol = args.https === true ? "https" : "http";
   const devServerUrl = url.format({ protocol, hostname, port });
 
-  const originalResolveRequest = metroConfig.resolver?.resolveRequest ?? defaultResolve;
+  const originalResolveRequest =
+    metroConfig.resolver?.resolveRequest ?? defaultResolve;
   metroConfig.resolver.resolveRequest = (context, moduleName, platform) => {
-    if (moduleName === '../Core/InitializeCore') {
+    if (moduleName === "../Core/InitializeCore") {
       return {
-        filePath: require.resolve('react-native-network-debugger/client'),
-        type: 'sourceFile',
-      }
+        filePath: require.resolve("react-native-network-debugger/client"),
+        type: "sourceFile",
+      };
     }
     return originalResolveRequest(context, moduleName, platform);
-  }
+  };
 
   console.info(
-    chalk.blue(`\nWelcome to React Native v${cliConfig.reactNativeVersion}`),
+    chalk.blue(`\nWelcome to React Native v${cliConfig.reactNativeVersion}`)
   );
 
   const serverStatus = await isDevServerRunning(devServerUrl, projectRoot);
 
-  if (serverStatus === 'matched_server_running') {
+  if (serverStatus === "matched_server_running") {
     console.info(
-      `A dev server is already running for this project on port ${port}. Exiting.`,
+      `A dev server is already running for this project on port ${port}. Exiting.`
     );
     return;
-  } else if (serverStatus === 'port_taken') {
+  } else if (serverStatus === "port_taken") {
     console.error(
-      `${chalk.red('error')}: Another process is running on port ${port}. Please terminate this ` +
-        'process and try again, or use another port with "--port".',
+      `${chalk.red(
+        "error"
+      )}: Another process is running on port ${port}. Please terminate this ` +
+        'process and try again, or use another port with "--port".'
     );
     return;
   }
@@ -81,8 +80,8 @@ async function runServer(
   console.info(`Starting dev server on ${devServerUrl}\n`);
 
   if (args.assetPlugins) {
-    metroConfig.transformer.assetPlugins = args.assetPlugins.map(plugin =>
-      require.resolve(plugin),
+    metroConfig.transformer.assetPlugins = args.assetPlugins.map((plugin) =>
+      require.resolve(plugin)
     );
   }
   // TODO(T214991636): Remove legacy Metro log forwarding
@@ -112,7 +111,8 @@ async function runServer(
     unstable_experiments: {
       enableNetworkInspector: true,
     },
-    unstable_customInspectorMessageHandler: InspectorMessageHandler.createInspectorMessageHandler,
+    unstable_customInspectorMessageHandler:
+      InspectorMessageHandler.createInspectorMessageHandler,
   });
 
   const reporter = {
@@ -121,15 +121,15 @@ async function runServer(
       if (!Array.isArray(event.data) || event.data[0] !== DEVICE_KEY) {
         terminalReporter.update(event);
       }
-      
+
       if (reportEvent) {
         reportEvent(event);
       }
-      if (args.interactive && event.type === 'initialize_done') {
+      if (args.interactive && event.type === "initialize_done") {
         terminalReporter.update({
-          type: 'unstable_server_log',
-          level: 'info',
-          data: `Dev server ready. ${chalk.dim('Press Ctrl+C to exit.')}`,
+          type: "unstable_server_log",
+          level: "info",
+          data: `Dev server ready. ${chalk.dim("Press Ctrl+C to exit.")}`,
         });
         attachKeyHandlers({
           devServerUrl,
@@ -142,7 +142,6 @@ async function runServer(
   metroConfig.reporter = reporter;
 
   const jsAppMiddlewareEndpoint = JSAppProxy.createJSAppMiddleware();
-
 
   const serverInstance = await Metro.runServer(metroConfig, {
     host: args.host,
@@ -169,7 +168,7 @@ async function runServer(
   //
   // For more info: https://github.com/nodejs/node/issues/13391
   //
-  serverInstance.keepAliveTimeout = 30000;
+  serverInstance.keepAliveTimeout = 45000;
 
   await version.logIfUpdateAvailable(cliConfig, terminalReporter);
 }
@@ -178,7 +177,7 @@ function getReporterImpl(customLogReporterPath) {
   if (customLogReporterPath == null) {
     // Try the new Metro >= 0.83 API first
     try {
-      const metro = require('metro');
+      const metro = require("metro");
       if (metro.TerminalReporter != null) {
         return metro.TerminalReporter;
       }
@@ -188,11 +187,11 @@ function getReporterImpl(customLogReporterPath) {
 
     // Fallback to legacy path for Metro < 0.83
     try {
-      return require('metro/src/lib/TerminalReporter');
+      return require("metro/src/lib/TerminalReporter");
     } catch (e) {
       throw new Error(
-        'Unable to find TerminalReporter in metro package. ' +
-        'Please ensure you have a compatible version of Metro installed (>= 0.83 recommended).'
+        "Unable to find TerminalReporter in metro package. " +
+          "Please ensure you have a compatible version of Metro installed (>= 0.83 recommended)."
       );
     }
   }
@@ -201,7 +200,7 @@ function getReporterImpl(customLogReporterPath) {
     // as expected. eg: require('my-package/reporter');
     return require(customLogReporterPath);
   } catch (e) {
-    if (e instanceof Error && 'code' in e && e.code !== 'MODULE_NOT_FOUND') {
+    if (e instanceof Error && "code" in e && e.code !== "MODULE_NOT_FOUND") {
       throw e;
     }
     // If that doesn't work, then we next try relative to the cwd, eg:
