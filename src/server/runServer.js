@@ -176,14 +176,32 @@ async function runServer(
 
 function getReporterImpl(customLogReporterPath) {
   if (customLogReporterPath == null) {
-    return require('metro/src/lib/TerminalReporter');
+    // Try the new Metro >= 0.83 API first
+    try {
+      const metro = require('metro');
+      if (metro.TerminalReporter != null) {
+        return metro.TerminalReporter;
+      }
+    } catch {
+      // Ignore if metro package itself fails to load
+    }
+
+    // Fallback to legacy path for Metro < 0.83
+    try {
+      return require('metro/src/lib/TerminalReporter');
+    } catch (e) {
+      throw new Error(
+        'Unable to find TerminalReporter in metro package. ' +
+        'Please ensure you have a compatible version of Metro installed (>= 0.83 recommended).'
+      );
+    }
   }
   try {
     // First we let require resolve it, so we can require packages in node_modules
     // as expected. eg: require('my-package/reporter');
     return require(customLogReporterPath);
   } catch (e) {
-    if (e.code !== 'MODULE_NOT_FOUND') {
+    if (e instanceof Error && 'code' in e && e.code !== 'MODULE_NOT_FOUND') {
       throw e;
     }
     // If that doesn't work, then we next try relative to the cwd, eg:
