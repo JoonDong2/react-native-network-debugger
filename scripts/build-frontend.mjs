@@ -75,7 +75,7 @@ function patchCommonJs(filePath) {
     return false;
   }
 
-  const socketEntry = `,Socket:new ${me}("WS",${r}.i18n.lockedLazyString("WebSocket"),${de}(${ue}.socketShort))`;
+  const socketEntry = `,Socket:new ${me}("WS",${de}(${ue}.socketShort),${r}.i18n.lockedLazyString("WS"))`;
   const absStart = blockStart + relMatch.index;
   const absEnd = absStart + relMatch[0].length;
 

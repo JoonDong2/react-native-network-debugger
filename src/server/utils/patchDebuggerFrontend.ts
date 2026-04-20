@@ -43,7 +43,7 @@ function patchCommonJs(filePath: string): boolean {
     return true; // 이미 패치됨
   }
 
-  const socketEntry = `,Socket:new ${me}("WS",${r}.i18n.lockedLazyString("WebSocket"),${de}(${ue}.socketShort))`;
+  const socketEntry = `,Socket:new ${me}("WS",${de}(${ue}.socketShort),${r}.i18n.lockedLazyString("WS"))`;
   const absStart = blockStart + relMatch.index;
   const patched =
     content.slice(0, absStart) +
