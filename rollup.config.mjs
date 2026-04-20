@@ -13,6 +13,7 @@ export default defineConfig([
       {
         file: "./dist/server/index.js",
         format: "cjs",
+        interop: "auto",
         sourcemap: false,
       },
     ],
@@ -41,6 +42,7 @@ export default defineConfig([
       {
         file: "./dist/client/index.js",
         format: "cjs",
+        interop: "auto",
         sourcemap: false,
       },
     ],

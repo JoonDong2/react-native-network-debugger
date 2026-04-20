@@ -10,11 +10,18 @@
 
 import { CLIError } from './errors';
 import { reactNativePlatformResolver } from './metroPlatformResolver';
-import { loadConfig, mergeConfig, resolveConfig } from 'metro-config';
 import path from 'path';
 import type { CLIConfig, MetroConfigOptions, ResolveRequest } from '../../types/metro';
 
 const debug = require('debug')('ReactNative:CommunityCliPlugin');
+
+// metro-config도 반드시 컨슈머 프로젝트에서 로드해야 metro-resolver와 동일한 인스턴스를 공유한다.
+type MetroConfigModule = typeof import('metro-config');
+
+function loadMetroConfigModule(): MetroConfigModule {
+  const resolved = require.resolve('metro-config', { paths: [process.cwd()] });
+  return require(resolved) as MetroConfigModule;
+}
 
 interface MetroConfig {
   resolver?: {
@@ -79,6 +86,7 @@ export default async function loadMetroConfig(
   ctx: CLIConfig,
   options: MetroConfigOptions = {}
 ): Promise<MetroConfig> {
+  const { loadConfig, mergeConfig, resolveConfig } = loadMetroConfigModule();
   const cwd = ctx.root;
   const projectConfig = await resolveConfig(options.config, cwd);
 

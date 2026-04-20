@@ -12,11 +12,13 @@
   },
   "files": [
     "dist",
+    "assets",
     "package.json"
   ],
   "scripts": {
-    "build": "rollup -c",
-    "prepare": "rollup -c",
+    "build-frontend": "node scripts/build-frontend.mjs",
+    "build": "yarn build-frontend && rollup -c",
+    "prepare": "yarn build-frontend && rollup -c",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -37,6 +39,7 @@
   },
   "devDependencies": {
     "@react-native-community/cli-types": "18.0.0",
+    "@react-native/debugger-frontend": "0.83.4",
     "@react-native/dev-middleware": "0.80.1",
     "@rollup/plugin-commonjs": "^25.0.8",
     "@rollup/plugin-json": "^6.1.0",

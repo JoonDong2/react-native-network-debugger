@@ -12,19 +12,30 @@ import createDevMiddlewareLogger from './utils/createDevMiddlewareLogger';
 import isDevServerRunning from './utils/isDevServerRunning';
 import loadMetroConfig from './utils/loadMetroConfig';
 import * as version from './utils/version';
+import { isRNGte083Server } from './utils/rnVersion';
 import attachKeyHandlers from './attachKeyHandlers';
 import { createDevServerMiddleware } from './middleware';
-import { createDevMiddleware } from '@react-native/dev-middleware';
 import chalk from 'chalk';
-import Metro from 'metro';
-import { Terminal } from 'metro-core';
+import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import InspectorMessageHandler from './InspectorMessageHandler';
 import { DEVICE_KEY } from '../shared/constants';
-import { resolve as defaultResolve } from 'metro-resolver';
 import JSAppProxy from './JSAppProxy';
+import { resolveConsumerFrontendDist, preparePatchedFrontend } from './utils/patchDebuggerFrontend';
+import type MetroModule from 'metro';
+import type { Terminal as TerminalType } from 'metro-core';
 import type { CLIConfig, ServerArgs, TerminalReporter, ResolverContext, Resolution } from '../types/metro';
+
+// Metro, metro-core, @react-native/dev-middleware는 반드시 컨슈머(char-app)의 node_modules에서
+// 로드해야 한다. 그렇지 않으면 metro-resolver가 두 인스턴스로 로드돼 사용자 customResolver의
+// require('metro-resolver').resolve와 Metro 내부 resolve가 서로 다른 참조가 되어 무한 재귀가 발생한다.
+function requireFromProject<T>(name: string): T {
+  const resolved = require.resolve(name, { paths: [process.cwd()] });
+  return require(resolved) as T;
+}
+
+type CreateDevMiddleware = typeof import('@react-native/dev-middleware').createDevMiddleware;
 
 interface MetroConfig {
   projectRoot: string;
@@ -54,7 +65,7 @@ interface MetroServer {
 }
 
 interface ReporterClass {
-  new (terminal: Terminal): TerminalReporter;
+  new (terminal: TerminalType): TerminalReporter;
 }
 
 async function runServer(
@@ -62,6 +73,9 @@ async function runServer(
   cliConfig: CLIConfig,
   args: ServerArgs
 ): Promise<void> {
+  const Metro = requireFromProject<typeof MetroModule>('metro');
+  const { Terminal } = requireFromProject<{ Terminal: typeof TerminalType }>('metro-core');
+
   const metroConfig = (await loadMetroConfig(cliConfig, {
     config: args.config,
     maxWorkers: args.maxWorkers,
@@ -81,8 +95,29 @@ async function runServer(
   const protocol = args.https === true ? 'https' : 'http';
   const devServerUrl = url.format({ protocol, hostname, port });
 
-  const originalResolveRequest =
-    metroConfig.resolver?.resolveRequest ?? defaultResolve;
+  // 기존 사용자 resolver를 보존하면서 `../Core/InitializeCore` 상대 경로만 client로 교체한다.
+  // React 렌더러가 ReactNativePrivateInitializeCore를 통해 상대 경로로 InitializeCore를 import하므로
+  // 이 경로를 가로채 client 번들을 로드하면 앱 시작 시점에 CDP 훅이 설치된다.
+  const prevResolveRequest = metroConfig.resolver?.resolveRequest;
+  const clientPath = require.resolve('react-native-network-debugger/client', {
+    paths: [process.cwd()],
+  });
+  // client 번들은 library node_modules 밖에서 import 되지만, react-native peer dep은
+  // 반드시 컨슈머 설치본을 써야 한다. (library node_modules에 버전이 다른 react-native가
+  // 남아 있을 수 있고, 그 경우 native 모듈과 JS 모듈 인스턴스가 어긋나 self 폴리필 같은
+  // 전역 상태가 분리되어 runtime 에러가 발생한다.)
+  const libraryDir = path.dirname(path.dirname(clientPath));
+  function resolveFromConsumer(moduleName: string): Resolution {
+    const resolved = require.resolve(moduleName, { paths: [process.cwd()] });
+    return { filePath: resolved, type: 'sourceFile' };
+  }
+  function isBareModule(name: string): boolean {
+    return (
+      !name.startsWith('.') &&
+      !name.startsWith('/') &&
+      !name.startsWith('\0') // rollup virtual
+    );
+  }
   metroConfig.resolver = metroConfig.resolver || {};
   metroConfig.resolver.resolveRequest = (
     context: ResolverContext,
@@ -90,12 +125,21 @@ async function runServer(
     platform: string | null
   ): Resolution => {
     if (moduleName === '../Core/InitializeCore') {
-      return {
-        filePath: require.resolve('react-native-network-debugger/client'),
-        type: 'sourceFile',
-      };
+      return { filePath: clientPath, type: 'sourceFile' };
     }
-    return originalResolveRequest(context, moduleName, platform);
+    // client 번들 내부의 bare import는 컨슈머 node_modules 기준으로 해석한다.
+    const origin = context.originModulePath;
+    if (origin && origin.startsWith(libraryDir) && isBareModule(moduleName)) {
+      try {
+        return resolveFromConsumer(moduleName);
+      } catch {
+        // fallthrough to default resolver
+      }
+    }
+    if (prevResolveRequest) {
+      return prevResolveRequest(context, moduleName, platform);
+    }
+    return context.resolveRequest(context, moduleName, platform);
   };
 
   console.info(
@@ -147,6 +191,40 @@ async function runServer(
     port,
     watchFolders,
   });
+
+  // RN 0.83+ 전용 커스텀 debugger-frontend(WS 필터 주입본)를 환경변수로 주입.
+  // @react-native/debugger-frontend의 index.js가 REACT_NATIVE_DEBUGGER_FRONTEND_PATH를 우선 사용한다.
+  if (isRNGte083Server(cliConfig.reactNativeVersion)) {
+    let frontendPath: string | null = null;
+
+    // 소비 프로젝트의 @react-native/debugger-frontend를 런타임에 참조해 패치 적용
+    const consumer = resolveConsumerFrontendDist();
+    if (consumer) {
+      console.info(chalk.dim(`[network-debugger] debugger-frontend v${consumer.version} (consumer)`));
+      frontendPath = preparePatchedFrontend(consumer.dist);
+    }
+
+    // 폴백: 라이브러리 번들에 포함된 패치본 assets
+    if (!frontendPath) {
+      const bundledPath = path.resolve(
+        __dirname, '..', '..', 'assets', 'debugger-frontend', 'third-party', 'front_end'
+      );
+      if (fs.existsSync(bundledPath)) {
+        frontendPath = bundledPath;
+        console.info(chalk.dim('[network-debugger] debugger-frontend v0.83.4 (bundled fallback)'));
+      }
+    }
+
+    if (frontendPath) {
+      process.env.REACT_NATIVE_DEBUGGER_FRONTEND_PATH = frontendPath;
+    }
+  }
+
+  // dev-middleware를 env 설정 이후에 lazy require 하여 커스텀 frontend 경로가 반영되게 한다.
+  // 컨슈머 프로젝트의 node_modules에서 로드한다.
+  const { createDevMiddleware } = requireFromProject<{
+    createDevMiddleware: CreateDevMiddleware;
+  }>('@react-native/dev-middleware');
 
   const { middleware, websocketEndpoints } = createDevMiddleware({
     projectRoot,
@@ -219,9 +297,9 @@ async function runServer(
 
 function getReporterImpl(customLogReporterPath?: string): ReporterClass {
   if (customLogReporterPath == null) {
-    // Try the new Metro >= 0.83 API first
+    // Try the new Metro >= 0.83 API first, loading from the consumer project.
     try {
-      const metro = require('metro') as { TerminalReporter?: ReporterClass };
+      const metro = requireFromProject<{ TerminalReporter?: ReporterClass }>('metro');
       if (metro.TerminalReporter != null) {
         return metro.TerminalReporter;
       }
@@ -231,7 +309,10 @@ function getReporterImpl(customLogReporterPath?: string): ReporterClass {
 
     // Fallback to legacy path for Metro < 0.83
     try {
-      return require('metro/src/lib/TerminalReporter') as ReporterClass;
+      const legacyPath = require.resolve('metro/src/lib/TerminalReporter', {
+        paths: [process.cwd()],
+      });
+      return require(legacyPath) as ReporterClass;
     } catch {
       throw new Error(
         'Unable to find TerminalReporter in metro package. ' +

@@ -58,6 +58,7 @@ export interface ServerArgs {
  * Metro resolver context
  */
 export interface ResolverContext {
+  originModulePath?: string;
   resolveRequest: (
     context: ResolverContext,
     moduleName: string,

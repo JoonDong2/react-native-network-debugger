@@ -1,5 +1,4 @@
 import { JS_APP_URL } from "../shared/constants";
-import url from "url";
 import type { WebSocketServer, RawData, WebSocket as WebSocketType } from "ws";
 import type { IncomingMessage } from "http";
 import type { CDPMessage } from "../types/cdp";
@@ -75,8 +74,9 @@ const createJSAppMiddleware = (): Record<string, WebSocketServer> => {
 
   wss.on("connection", async (socket: WebSocketType, req: IncomingMessage) => {
     const fallbackDeviceId = String(appCounter++);
-    const query = url.parse(req.url || "", true).query || {};
-    const appId = (query.id as string) || fallbackDeviceId;
+    // WHATWG URL API 사용. req.url은 상대 경로이므로 더미 origin을 붙인다.
+    const searchParams = new URL(req.url || "", "http://localhost").searchParams;
+    const appId = searchParams.get("id") || fallbackDeviceId;
 
     idToAppConnection.set(appId, {
       sendMessage: (message: CDPMessage | string): void => {

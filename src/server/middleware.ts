@@ -49,8 +49,10 @@ const communityMiddlewareFallback: CommunityMiddleware = {
 try {
   // `@react-native-community/cli` is an optional peer dependency of this
   // package, and should be a dev dependency of the host project (via the
-  // community template's package.json).
-  const communityCliPath = require.resolve('@react-native-community/cli');
+  // community template's package.json). 컨슈머 프로젝트에서 해석한다.
+  const communityCliPath = require.resolve('@react-native-community/cli', {
+    paths: [process.cwd()],
+  });
 
   // Until https://github.com/react-native-community/cli/pull/2605 lands,
   // we need to find `@react-native-community/cli-server-api` via
