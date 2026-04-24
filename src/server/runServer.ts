@@ -16,7 +16,6 @@ import { isRNGte083Server } from './utils/rnVersion';
 import attachKeyHandlers from './attachKeyHandlers';
 import { createDevServerMiddleware } from './middleware';
 import chalk from 'chalk';
-import fs from 'fs';
 import path from 'path';
 import url from 'url';
 import InspectorMessageHandler from './InspectorMessageHandler';
@@ -195,23 +194,23 @@ async function runServer(
   // RN 0.83+ 전용 커스텀 debugger-frontend(WS 필터 주입본)를 환경변수로 주입.
   // @react-native/debugger-frontend의 index.js가 REACT_NATIVE_DEBUGGER_FRONTEND_PATH를 우선 사용한다.
   if (isRNGte083Server(cliConfig.reactNativeVersion)) {
-    let frontendPath: string | null = null;
-
-    // 소비 프로젝트의 @react-native/debugger-frontend를 런타임에 참조해 패치 적용
+    // 소비 프로젝트의 @react-native/debugger-frontend를 런타임에 참조해 패치 적용.
+    // 패치 실패 시에는 env var를 세팅하지 않아 dev-middleware가 원본 consumer frontend를
+    // 그대로 쓰도록 둔다. (라이브러리 번들 assets는 0.83.4 고정이라 소비 프로젝트의
+    // RN 버전과 어긋나면 CDP/UX 불일치를 유발하므로 fallback에서 제외한다.
+    // Socket 필터는 잃지만 디버거 본체는 네이티브와 버전 정합성이 유지된다.)
     const consumer = resolveConsumerFrontendDist();
+    let frontendPath: string | null = null;
     if (consumer) {
       console.info(chalk.dim(`[network-debugger] debugger-frontend v${consumer.version} (consumer)`));
       frontendPath = preparePatchedFrontend(consumer.dist);
-    }
-
-    // 폴백: 라이브러리 번들에 포함된 패치본 assets
-    if (!frontendPath) {
-      const bundledPath = path.resolve(
-        __dirname, '..', '..', 'assets', 'debugger-frontend', 'third-party', 'front_end'
-      );
-      if (fs.existsSync(bundledPath)) {
-        frontendPath = bundledPath;
-        console.info(chalk.dim('[network-debugger] debugger-frontend v0.83.4 (bundled fallback)'));
+      if (!frontendPath) {
+        console.warn(
+          chalk.yellow(
+            `[network-debugger] WebSocket 필터 주입 실패 (debugger-frontend v${consumer.version}). ` +
+              '원본 frontend를 그대로 사용합니다.'
+          )
+        );
       }
     }
 

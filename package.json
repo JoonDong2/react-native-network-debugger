@@ -12,13 +12,11 @@
   },
   "files": [
     "dist",
-    "assets",
     "package.json"
   ],
   "scripts": {
-    "build-frontend": "node scripts/build-frontend.mjs",
-    "build": "yarn build-frontend && rollup -c",
-    "prepare": "yarn build-frontend && rollup -c",
+    "build": "rollup -c",
+    "prepare": "rollup -c",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
