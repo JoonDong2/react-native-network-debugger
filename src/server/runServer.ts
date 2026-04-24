@@ -217,6 +217,32 @@ async function runServer(
 
     if (frontendPath) {
       process.env.REACT_NATIVE_DEBUGGER_FRONTEND_PATH = frontendPath;
+      // RN 0.85+에서는 react-native/react-native.config.js가 CLI config 로드 시점에
+      // @react-native/community-cli-plugin을 eager require한다. 이게 @react-native/dev-middleware
+      // → @react-native/debugger-frontend 체인을 env 세팅 전에 로드해버리므로, debugger-frontend의
+      // frontEndPath가 default로 고정된 채 module.exports에 캐시된다. 이 상태에서 dev-middleware를
+      // 다시 require해도 같은 캐시 객체를 돌려받아 커스텀 frontend 경로가 반영되지 않는다.
+      // → env var 세팅 후 관련 모듈 캐시를 비워 fresh하게 재로딩한다.
+      // 내부 상대 경로 모듈(createDevMiddleware.js 등)도 자체 캐시를 가지므로 패키지 내부
+      // 모든 캐시 엔트리를 비워야 한다. 단순히 entry point만 비우면 내부 require가 여전히
+      // 오래된 debugger-frontend export 참조를 들고 있어 env var가 반영되지 않는다.
+      const purgePackageCache = (name: string): void => {
+        try {
+          const pkgJsonPath = require.resolve(`${name}/package.json`, {
+            paths: [process.cwd()],
+          });
+          const pkgDir = path.dirname(pkgJsonPath);
+          for (const key of Object.keys(require.cache)) {
+            if (key.startsWith(pkgDir + path.sep) || key === pkgDir) {
+              delete require.cache[key];
+            }
+          }
+        } catch {
+          // ignore
+        }
+      };
+      purgePackageCache('@react-native/debugger-frontend');
+      purgePackageCache('@react-native/dev-middleware');
     }
   }
 
