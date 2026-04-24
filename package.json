@@ -1,6 +1,6 @@
 {
   "name": "react-native-network-debugger",
-  "version": "0.2.10",
+  "version": "0.2.11",
   "main": "dist/server/index.js",
   "exports": {
     ".": {
